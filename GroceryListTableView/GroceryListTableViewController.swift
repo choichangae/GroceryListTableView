@@ -7,39 +7,57 @@
 
 import UIKit
 
+
+extension UIButton
+{
+    func switchOn(isOn: Bool)
+    {
+        if(isOn)
+        {
+            setTitleColor(.systemBlue, for: .normal)
+        }
+        else
+        {
+            setTitleColor(.systemGray, for: .normal)
+        }
+    }
+}
+
+
 class GroceryListTableViewController: UITableViewController {
 
-    static var today = Date()
-    
-    var groceries: [Grocery] = [
-        Grocery(title: "양파", category: .Vegetable, count: 5, dueDate: today.addingTimeInterval(secondOfDay*7*2), saveDate: today,
-                notes: "", storage: .Outdoor, fridgeName: "메인 냉장고", isPercentageCount: false),
-        Grocery(title: "양배추", category: .Vegetable, count: 1, dueDate: today.addingTimeInterval(secondOfDay*30), saveDate: today,
-                notes: "", storage: .Refrigeration, fridgeName: "메인 냉장고", isPercentageCount: false),
-        Grocery(title: "달걀", category: .MeatsAndEggs, count: 30, dueDate: today.addingTimeInterval(secondOfDay*7), saveDate: today,
-                notes: "", storage: .Refrigeration, fridgeName: "메인 냉장고", isPercentageCount: false),
-        Grocery(title: "치즈", category: .MeatsAndEggs, count: 14, dueDate: today.addingTimeInterval(secondOfDay*14), saveDate: today,
-                notes: "아기 먹일 유기농 치즈", storage: .Refrigeration, fridgeName: "메인 냉장고", isPercentageCount: false),
-        Grocery(title: "이유식용 소고기", category: .MeatsAndEggs, count: 100, dueDate: today.addingTimeInterval(secondOfDay*30), saveDate: today,
-                notes: "", storage: .Refrigeration, fridgeName: "메인 냉장고", isPercentageCount: true),
-        Grocery(title: "사과", category: .Fruits, count: 5, dueDate: today.addingTimeInterval(secondOfDay*8), saveDate: today,
-                notes: "", storage: .Refrigeration, fridgeName: "메인 냉장고", isPercentageCount: false),
-        Grocery(title: "고등어", category: .MarineProducts, count: 3, dueDate: today.addingTimeInterval(-secondOfDay*3), saveDate: today,
-                notes: "", storage: .Refrigeration, fridgeName: "메인 냉장고", isPercentageCount: false),
-        Grocery(title: "김치", category: .CookingAndSidedishes, count: 50, dueDate: today.addingTimeInterval(secondOfDay*60), saveDate: today,
-                notes: "19년 김장 김치", storage: .Refrigeration, fridgeName: "메인 냉장고", isPercentageCount: true),
-        Grocery(title: "롯데햄)켄터키핫도그75g(냉동)", category: .CookingAndSidedishes, count: 10, dueDate: today.addingTimeInterval(secondOfDay*90), saveDate: today,
-                notes: "", storage: .Freezing, fridgeName: "메인 냉장고", isPercentageCount: false),
-        Grocery(title: "면사랑)해물볶음우동370g(냉동)       ", category: .CookingAndSidedishes, count: 30, dueDate: today.addingTimeInterval(secondOfDay*7), saveDate: today,
-                notes: "", storage: .Freezing, fridgeName: "메인 냉장고", isPercentageCount: false)
-    ]
+    @IBOutlet weak var categoryButton: UIButton!
+    @IBOutlet weak var refrigerationButton: UIButton!
+    @IBOutlet weak var freezingButton: UIButton!
+    @IBOutlet weak var outdoorButton: UIButton!
     
     var numberOfSections: Int = 0
     var sectionNames: [String] = []
-    var cellCount: [Int] = []
+    var numbersOfRowInSection: [Int] = []
     var filteredGroceries: [[Grocery]] = []
     
-    var filter: Grocery.FridgeFilter = .CategoryFilter
+    //var filtersInFridgeView: [Bool] = [true, true, true]   // FridgeViewFilter순서
+    var categoryButtonOn = true
+    var refrigerationButtonOn = true
+    var freezingButtonOn = true
+    var outdoorButtonOn = true
+    
+    func isFridgeViewFilterSelected(_ filter: FridgeViewFilter) -> Bool
+    {
+        switch filter {
+        case .Refrigeration:
+            return refrigerationButtonOn
+        case .Freezing:
+            return freezingButtonOn
+        case .Outdoor:
+            return outdoorButtonOn
+        }
+    }
+    
+    func isFridgeViewCategorySelected() -> Bool
+    {
+        return categoryButtonOn
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -50,50 +68,65 @@ class GroceryListTableViewController: UITableViewController {
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         // self.navigationItem.rightBarButtonItem = self.editButtonItem
         
+        updateButtons()
         updateTableView()
+    }
+    
+    func updateButtons()
+    {
+        categoryButton.switchOn(isOn: categoryButtonOn)
+        refrigerationButton.switchOn(isOn: refrigerationButtonOn)
+        freezingButton.switchOn(isOn: freezingButtonOn)
+        outdoorButton.switchOn(isOn: outdoorButtonOn)
     }
     
     func updateTableView()
     {
         numberOfSections = 0
-        cellCount.removeAll()
+        numbersOfRowInSection.removeAll()
         filteredGroceries.removeAll()
         sectionNames.removeAll()
-        if filter == .CategoryFilter
+        
+        // 냉장, 냉동, 실외 선택으로 보여지는 groceries를 필터링해서 showGroceries에 추가한다.
+        var showGroceries: [Grocery] = []
+        
+        for filter in FridgeViewFilter.allCases
         {
-            for type in Grocery.Category.allCases
+            if isFridgeViewFilterSelected(filter)
             {
-                let filtered = groceries.filter{$0.category == type}
-                if filtered.count > 0
+                showGroceries.append(contentsOf: groceries.filter{ $0.storage == filter})
+            }
+        }
+        
+        // 분류별이면 카테고리별로 섹터를 나누고 카테고리 순서로 filteredGroceries에 항목을 추가한다.
+        if isFridgeViewCategorySelected()
+        {
+            for category in GroceryHistory.Category.allCases
+            {
+                var sectionGroceries: [Grocery] = []
+                for grocery in showGroceries
                 {
-                    cellCount.append(filtered.count)
-                    numberOfSections+=1
-                    filteredGroceries.append(filtered)
-                    sectionNames.append(type.rawValue)
+                    if(grocery.info.category == category)
+                    {
+                        sectionGroceries.append(grocery)
+                    }
+                }
+                
+                if sectionGroceries.count > 0
+                {
+                    numbersOfRowInSection.append(sectionGroceries.count)
+                    numberOfSections += 1
+                    filteredGroceries.append(sectionGroceries)
+                    sectionNames.append(category.rawValue)
                 }
             }
         }
         else
         {
-            let storageFilter: Grocery.Storage
-            switch filter {
-            case .RefrigerationFilter:
-                storageFilter = .Refrigeration
-            case .FreezingFilter:
-                storageFilter = .Freezing
-            case .OutdoorFilter:
-                storageFilter = .Outdoor
-            default:
-                storageFilter = .Refrigeration
-            }
-            let filtered = groceries.filter{$0.storage == storageFilter}
-            if filtered.count > 0
-            {
-                cellCount.append(filtered.count)
-                numberOfSections=1
-                filteredGroceries.append(filtered)
-                sectionNames.append(Grocery.FridgeFilter.RefrigerationFilter.rawValue)
-            }
+            numbersOfRowInSection.append(showGroceries.count)
+            numberOfSections = 1
+            filteredGroceries.append(showGroceries)
+            sectionNames.append("")
         }
     }
 
@@ -106,7 +139,7 @@ class GroceryListTableViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return cellCount[section]
+        return numbersOfRowInSection[section]
     }
     
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
@@ -122,11 +155,11 @@ class GroceryListTableViewController: UITableViewController {
         {
             let groceries = filteredGroceries[indexPath.section]
             let grocery = groceries[indexPath.row]
+
+            cell.titleLabel?.text = grocery.info.title
             
-            cell.titleLabel?.text = grocery.title
-            
-            let diffDate = grocery.dueDate.timeIntervalSinceNow
-            let diffDay = Int(diffDate/(secondOfDay))
+            let diffDate = grocery.dueDate.date.timeIntervalSinceNow
+            let diffDay = Int(diffDate/(DueDate.secondOfDay))
             cell.expirationLabel?.text = diffDay>=0 ? String("D-\(diffDay+1)") : String("D+\(-diffDay)")
             cell.expirationLabel?.textColor = diffDay>=0 ? UIColor.darkGray : .red
             
@@ -143,23 +176,42 @@ class GroceryListTableViewController: UITableViewController {
         
         return cell
     }
-    @IBAction func filterSegmentControlChanged(_ sender: UISegmentedControl) {
-        
-        switch sender.selectedSegmentIndex
-        {
-        case 0: filter = .CategoryFilter
-        case 1: filter = .RefrigerationFilter
-        case 2: filter = .FreezingFilter
-        case 3: filter = .OutdoorFilter
-        default: return
-            
-        }
-        
+    
+    @IBAction func categoryButtonTapped(_ sender: Any)
+    {
+        categoryButtonOn.toggle()
+        updateButtons()
         updateTableView()
         tableView.reloadData()
 
-        
     }
+    
+    @IBAction func refrigerationButtonTapped(_ sender: Any)
+    {
+        refrigerationButtonOn.toggle()
+        updateButtons()
+        updateTableView()
+        tableView.reloadData()
+
+    }
+    
+    @IBAction func freezingButtonTapped(_ sender: Any)
+    {
+        freezingButtonOn.toggle()
+        updateButtons()
+        updateTableView()
+        tableView.reloadData()
+
+    }
+    
+    @IBAction func outdoorButtonTapped(_ sender: Any)
+    {
+        outdoorButtonOn.toggle()
+        updateButtons()
+        updateTableView()
+        tableView.reloadData()
+    }
+    
     
     /*
     // Override to support conditional editing of the table view.

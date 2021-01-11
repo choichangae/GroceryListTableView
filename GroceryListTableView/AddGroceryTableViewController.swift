@@ -36,8 +36,9 @@ class AddGroceryTableViewController: UITableViewController {
         if let grocery = grocery
         {
             storageSegment.selectedSegmentIndex = grocery.storage.rawValue
-            nameTextField.text = grocery.title
-            categoryButton.setTitle(grocery.category.rawValue, for: .normal)
+            
+            nameTextField.text = grocery.info.title
+            categoryButton.setTitle(grocery.info.category.rawValue, for: .normal)
             countLabel.text = "\(Int(grocery.count))"
             percentageSwitch.isOn = grocery.isPercentageCount
             
@@ -46,7 +47,7 @@ class AddGroceryTableViewController: UITableViewController {
             dateFormatter.timeStyle = .none
             dateFormatter.locale = Locale(identifier: "ko_KR")
             
-            dueDateLabel.text = dateFormatter.string(from: grocery.dueDate)
+            dueDateLabel.text = dateFormatter.string(from: grocery.dueDate.date)
             storageSelectButton.setTitle(grocery.fridgeName, for: .normal)
             noteButton.setTitle(grocery.notes, for: .normal)
             
